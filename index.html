@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanatic AI 4.0 Chat</title>
+    <!-- Muat Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Muat Ikon Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* --- Palet Warna Estetika Ungu/Violet --- */
+        :root {
+            --color-primary-dark: #000000; /* Hitam Penuh untuk Background Body */
+            --color-primary-glow: #a855f7; /* Ungu Cerah untuk Glow & Border */
+            --color-accent-user: #8b5cf6; /* Violet untuk Pesan Pengguna */
+            --color-accent-ai: #1f2937; /* Abu-abu Gelap untuk Pesan AI */
+            --color-text-white: #f3f4f6; /* Putih Pucat */
+            --color-text-input: #ffffff; /* Putih Penuh */
+        }
+        
+        /* Font Utama (Normal) */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-primary-dark);
+            color: var(--color-text-white);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Efek Glow */
+        .glow-text {
+            color: var(--color-primary-glow);
+            text-shadow: 0 0 8px var(--color-primary-glow), 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+        .glow-border {
+            box-shadow: 0 0 10px var(--color-primary-glow);
+            border: 2px solid var(--color-primary-glow);
+        }
+        /* Pesan AI harus semi-transparan agar background chat terlihat */
+        .ai-message {
+            background-color: rgba(31, 41, 55, 0.85); /* 85% opacity */
+            border-left: 4px solid var(--color-primary-glow);
+        }
+        .user-message {
+            background-color: var(--color-accent-user);
+        }
+
+        /* Container Chat dengan Background Gambar */
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: 8rem; 
+            background-image: url('https://l.top4top.io/p_3595lgsz71.jpg');
+            background-size: cover; /* Pastikan gambar menutupi seluruh area */
+            background-position: center; /* Fokus di tengah gambar */
+            background-repeat: no-repeat;
+            background-attachment: local;
+        }
+
+        /* Input Video */
+        #loading-video-1, #loading-video-2, #banner-video {
+            border-radius: 12px;
+            object-fit: cover;
+        }
+        /* Ukuran video diperbesar untuk loading screen */
+        .loading-video-container {
+            width: 90vw;
+            max-width: 400px; /* Batasi agar tidak terlalu lebar di desktop */
+            height: 240px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #loading-video-1, #loading-video-2 {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Typing Indicator (Dot Pulse) */
+        .dot-pulse {
+            display: flex;
+            align-items: center;
+            height: 1rem;
+        }
+        .dot-pulse::before, .dot-pulse::after, .dot-pulse span {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background-color: var(--color-primary-glow);
+            border-radius: 50%;
+            margin: 0 4px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .dot-pulse span {
+            animation-delay: 0.3s;
+        }
+        .dot-pulse::after {
+            animation-delay: 0.6s;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(0.7); opacity: 0.5; }
+            50% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-black">
+
+    <!-- 1. LOADING SCREEN (10 DETIK) -->
+    <div id="loading-screen-1" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-50 transition-opacity duration-1000">
+        <div class="p-4 rounded-xl glow-border flex flex-col items-center loading-video-container">
+            <!-- Video 1 -->
+            <video id="loading-video-1" src="https://k.top4top.io/m_3595149wc1.mp4" autoplay muted playsinline loop></video>
+        </div>
+        <h1 class="glow-text text-3xl md:text-4xl font-extrabold mt-6">Vanatic AI 3.0</h1>
+        <p class="mt-4 text-gray-400">Sedang Update......</p>
+        <div class="dot-pulse mt-4"><span></span></div>
+    </div>
+
+    <!-- 2. LOGIN SCREEN -->
+    <div id="login-screen" class="hidden min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-sm p-6 bg-gray-900 rounded-xl shadow-2xl border border-gray-700">
+            <img src="https://j.top4top.io/p_3595uxq2b1.jpg" alt="Login Banner" class="w-full h-auto rounded-lg mb-6 shadow-xl" style="height: 180px; object-fit: cover;">
+            <h1 class="glow-text text-3xl font-extrabold text-center mb-4">Vanatic AI 3.0</h1>
+            <p class="text-gray-400 text-center mb-6">Welcome Back, Buy Access? @KyuzuSyarboyy</p>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label for="username-input" class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                    <input type="text" id="username-input" placeholder="Username" class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
+                </div>
+                <div>
+                    <label for="api-key-input" class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                    <input type="password" id="api-key-input" placeholder="Password" class="w-full p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
+                </div>
+                <button type="submit" class="w-full p-3 rounded-xl font-bold text-lg bg-purple-700 hover:bg-purple-600 transition-colors shadow-lg shadow-purple-500/50">
+                    <i data-lucide="log-in" class="w-5 h-5 mr-2 inline"></i>
+                    Login
+                </button>
+                <p id="login-error" class="text-red-400 text-center text-sm hidden">Username Dan Password anda belom keisi</p>
+            </form>
+            <a href="https://t.me/KyuzuStarboyy" target="_blank" class="flex items-center justify-center w-full p-3 mt-4 rounded-xl text-white font-bold bg-blue-700 hover:bg-blue-600 transition-colors duration-200 shadow-lg shadow-blue-500/50">
+                <i data-lucide="send" class="w-5 h-5 mr-3"></i>
+                Developer
+            </a>
+        </div>
+    </div>
+    
+    <!-- 3. LOADING SCREEN 2 (16 DETIK) -->
+    <div id="loading-screen-2" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-50 transition-opacity duration-1000 hidden">
+        <div class="p-4 rounded-xl glow-border flex flex-col items-center loading-video-container">
+            <!-- Video 2 (Menggunakan tautan video pertama yang berfungsi) -->
+            <video id="loading-video-2" src="https://j.top4top.io/m_3594no3j71.mp4" autoplay muted playsinline loop></video>
+        </div>
+        <h1 class="glow-text text-3xl md:text-4xl font-extrabold mt-6">Vanatic AI 3.0</h1>
+        <p class="mt-4 text-gray-400">Menyambung ke server anda...</p>
+        <div class="dot-pulse mt-4"><span></span></div>
+    </div>
+
+
+    <!-- 4. CHAT SCREEN -->
+    <div id="chat-screen" class="hidden flex flex-col h-screen">
+        <!-- Audio Background Music -->
+        <!-- Hilangkan autoplay agar bisa dikontrol tombol -->
+        <audio id="background-music" src="https://a.top4top.io/m_3595tx6os1.mp3" loop preload="auto"></audio>
+
+        <!-- Header Chat (BG Hitam/Gelap) -->
+        <header class="p-4 bg-gray-900 shadow-xl border-b border-gray-800 flex flex-col items-center sticky top-0 z-10">
+            <div class="w-full max-w-4xl flex flex-col items-center">
+                <!-- Foto Banner Chat (Diperbesar) -->
+                <img src="https://i.top4top.io/p_3595rp0dk1.jpg" alt="Chat Banner" class="w-full object-cover rounded-lg shadow-xl" style="height: 180px; max-height: 180px;">
+                
+                <h1 class="glow-text text-xl font-extrabold mt-2">Vanatic AI 3.0</h1>
+                <div class="flex space-x-4 text-sm mt-1">
+                    <span class="flex items-center text-green-400">
+                        <i data-lucide="plug-zap" class="w-4 h-4 mr-1"></i>Server: Online
+                    </span>
+                    <span class="flex items-center text-red-400">
+                        <i data-lucide="user" class="w-4 h-4 mr-1"></i>Username: <span id="current-user-display" class="font-bold ml-1"></span>
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Mode AI Display dan Tombol -->
+            <div class="relative mt-4 w-full max-w-4xl flex justify-center">
+                <div id="mode-display" class="flex items-center p-2 rounded-full bg-gray-800 text-white border border-gray-700">
+                    <i data-lucide="cloud-lightning" class="w-5 h-5 mr-2 text-yellow-500"></i>
+                    <span class="font-medium">Mode Aktif: Santai</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Kontainer Pesan (Background Gambar Khusus) -->
+        <main class="chat-container max-w-4xl mx-auto w-full p-4 space-y-4 flex-grow">
+            <!-- Pesan Awal -->
+            <div class="flex justify-start">
+                <div class="max-w-4/5 p-4 rounded-xl ai-message shadow-lg">
+                    <p class="text-sm font-semibold text-purple-400 mb-1">AI Vanatic</p>
+                    <p class="text-gray-300">Halo! Saya Vanatic AI 3.0, Saya Adalah Ai Canggih Buatan @KyuzuStarboyy, Tugas Saya Membantu Anda!</p>
+                </div>
+            </div>
+            
+            <!-- Area Pesan Akan Muncul di Sini -->
+            
+            <!-- Loading Indicator -->
+            <div id="loading-indicator" class="flex justify-start hidden">
+                <div class="max-w-4/5 p-3 rounded-xl ai-message shadow-lg">
+                    <div class="dot-pulse"><span></span></div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Kontainer Input (BG Hitam/Gelap) -->
+        <footer class="w-full bg-black p-4 border-t border-gray-800 shadow-2xl sticky bottom-0">
+            <div class="max-w-4xl mx-auto flex items-center space-x-3">
+                
+                <!-- Tombol Audio/Music Toggle (Berfungsi sebagai Play/Pause Musik) -->
+                <button type="button" id="audio-toggle-btn" class="p-3 rounded-full bg-gray-800 text-gray-400 transition-colors duration-200 hover:bg-gray-700" title="Putar/Jeda Musik Latar">
+                    <!-- Default: Music Off (muted) -->
+                    <i data-lucide="volume-x" class="w-6 h-6"></i>
+                </button>
+                
+                <form id="chat-form" class="flex w-full space-x-2">
+                    <!-- Input Text Area (Gaya Gemini) -->
+                    <textarea
+                        id="user-input"
+                        class="flex-grow p-4 rounded-3xl bg-gray-800 text-white border-none focus:ring-4 focus:ring-purple-900 focus:border-purple-500 resize-none overflow-y-auto max-h-40 shadow-inner placeholder:text-gray-500"
+                        placeholder="Ketik pesan atau Ai Mode : [Nama Mode]"
+                        rows="1"
+                        required
+                        style="color: var(--color-text-input);"
+                    ></textarea>
+
+                    <!-- Tombol Kirim -->
+                    <button
+                        type="submit"
+                        id="send-button"
+                        class="p-3 rounded-full bg-purple-700 text-white disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed self-end shadow-lg hover:bg-purple-600 transition-colors"
+                        disabled
+                    >
+                        <i data-lucide="send" class="w-6 h-6"></i>
+                    </button>
+                </form>
+            </div>
+            <!-- Status TTS/Audio Feedback -->
+            <div id="audio-status" class="text-center text-xs mt-2 text-red-400 hidden">TTS sedang diputar...</div>
+        </footer>
+    </div>
+
+    <script>
+        // Inisialisasi ikon Lucide
+        lucide.createIcons();
+        
+        // --- KONFIGURASI DAN VARIABEL GLOBAL ---
+        const API_KEY_STORAGE_KEY = 'vanatic_ai_4_0_api_key';
+        const USERNAME_STORAGE_KEY = 'vanatic_ai_4_0_username';
+        const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
+        const GEMINI_MODEL = 'gemini-2.5-flash-preview-09-2025';
+        const TTS_MODEL = 'gemini-2.5-flash-preview-tts';
+        
+        let API_KEY = "";
+        let currentUsername = "";
+        let isGenerating = false;
+        let isAudioEnabled = false; // Status apakah TTS aktif atau tidak
+        let isMusicPlaying = false; // Status Music Latar
+        let currentMode = 'santai';
+
+        const MODES = {
+            santai: { 
+                icon: 'cloud-lightning', color: 'text-yellow-500', name: 'Santai', 
+                prompt: "Anda adalah teman ngobrol yang sangat santai, gaul, dan menggunakan bahasa sehari-hari. Jawab dengan singkat dan akrab. Kadang-kadang gunakan bahasa yang sedikit 'nakal' atau 'sok asik', tetapi tetap sopan dan tidak menyakiti.", 
+                tts: false
+            },
+            coding: { 
+                icon: 'code', color: 'text-blue-500', name: 'Tools And Code', 
+                prompt: "Anda adalah pakar pemrograman. Anda fokus menjelaskan tentang JavaScript, HTML, Python, dan konsep keamanan siber defensif. Selalu gunakan format kode (markdown) untuk contoh.", 
+                tts: false
+            },
+            game: { 
+                icon: 'gamepad', color: 'text-green-500', name: 'Game Mode', 
+                prompt: "Anda adalah komentator dan pakar game yang sangat antusias. Berikan penjelasan game, strategi, dan detail cara bermain dengan semangat. Respon harus terasa hidup. Selalu berikan respon yang pendek dan bersemangat, seolah sedang siaran.", 
+                tts: true 
+            },
+            sekolah: { 
+                icon: 'graduation-cap', color: 'text-red-500', name: 'Latihan Sekolah', 
+                prompt: "Anda adalah asisten akademik yang menjawab semua tugas sekolah dan soal secara detail, terstruktur, dan formal. Berikan jawaban yang singkat, padat, dan jelas.", 
+                tts: false
+            },
+            pacaran: { 
+                icon: 'heart', color: 'text-pink-500', name: 'Pacaran', 
+                prompt: "Anda adalah pasangan obrolan yang romantis dan posesif. Gaya bicara Anda lembut, penuh kasih sayang, dan sering menggunakan panggilan sayang. Jangan berlebihan.", 
+                tts: false
+            }
+        };
+
+        // --- DOM ELEMENTS ---
+        const loadingScreen1 = document.getElementById('loading-screen-1');
+        const loadingScreen2 = document.getElementById('loading-screen-2');
+        const loginScreen = document.getElementById('login-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const chatContainer = document.querySelector('.chat-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loginForm = document.getElementById('login-form');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const usernameInput = document.getElementById('username-input');
+        const loginError = document.getElementById('login-error');
+        const currentUserDisplay = document.getElementById('current-user-display');
+        const modeDisplay = document.getElementById('mode-display');
+        const audioToggleButton = document.getElementById('audio-toggle-btn');
+        const audioStatus = document.getElementById('audio-status');
+        const chatForm = document.getElementById('chat-form');
+        const backgroundMusic = document.getElementById('background-music');
+        backgroundMusic.volume = 0.3; // Atur volume musik latar
+
+        // --- FUNGSI UTILITY AUDIO ---
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate = 24000) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+            let offset = 0;
+
+            function writeString(s) { for (let i = 0; i < s.length; i++) { view.setUint8(offset + i, s.charCodeAt(i)); } offset += s.length; }
+            function writeUint32(i) { view.setUint32(offset, i, true); offset += 4; }
+            function writeUint16(i) { view.setUint16(offset, i, true); offset += 2; }
+
+            writeString('RIFF'); writeUint32(36 + pcm16.length * 2); writeString('WAVE');
+            writeString('fmt '); writeUint32(16); writeUint16(1); writeUint16(1);
+            writeUint32(sampleRate); writeUint32(sampleRate * 2); writeUint16(2); writeUint16(16);
+            writeString('data'); writeUint32(pcm16.length * 2);
+
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        // Permintaan API dengan Backoff Eksponensial
+        async function processAPIRequest(url, payload, retries = 3, delay = 1000) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return await response.json();
+                    } else if (response.status === 429 && i < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; 
+                    } else {
+                        const errorBody = await response.text();
+                        if (response.status === 403 || response.status === 400 && errorBody.includes("API key not valid")) {
+                            throw new Error(`Kunci API ditolak (Status ${response.status}). Pastikan Kunci API Gemini Anda benar dan aktif.`);
+                        } else {
+                            throw new Error(`Permintaan API gagal dengan status: ${response.status}. Pesan: ${errorBody.substring(0, 100)}...`);
+                        }
+                    }
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+            throw new Error("Gagal menghubungi API setelah beberapa kali percobaan.");
+        }
+
+
+        // --- FUNGSI UI & CHAT ---
+
+        function updateSendButtonState() {
+            const text = userInput.value.trim();
+            sendButton.disabled = isGenerating || !text;
+        }
+
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function showLoading() {
+            loadingIndicator.classList.remove('hidden');
+            isGenerating = true;
+            updateSendButtonState();
+            scrollToBottom();
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.add('hidden');
+            isGenerating = false;
+            updateSendButtonState();
+        }
+
+        function updateModeDisplay() {
+            const mode = MODES[currentMode];
+            modeDisplay.innerHTML = `
+                <i data-lucide="${mode.icon}" class="w-5 h-5 mr-2 ${mode.color}"></i>
+                <span class="font-medium">Mode Aktif: ${mode.name}</span>
+            `;
+            lucide.createIcons();
+            
+            // Atur status audio default mode (hanya TTS yang diaktifkan)
+            if (mode.tts && !isAudioEnabled) {
+                // Di sini kita hanya mengaktifkan status isAudioEnabled untuk TTS
+                // Pengontrol music sudah di luar logika ini
+                isAudioEnabled = true;
+                displayMessage(`🔊 **Mode Audio Otomatis (TTS) AKTIF** untuk ${mode.name}.`, false);
+            } else if (!mode.tts && isAudioEnabled) {
+                isAudioEnabled = false;
+                displayMessage(`🔇 **Mode Audio Otomatis (TTS) NONAKTIF**.`, false);
+            }
+        }
+        
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                // Stop music
+                backgroundMusic.pause();
+                isMusicPlaying = false;
+                
+                audioToggleButton.querySelector('i').setAttribute('data-lucide', 'volume-x');
+                audioToggleButton.classList.add('text-gray-400', 'bg-gray-800');
+                audioToggleButton.classList.remove('text-white', 'bg-purple-700', 'hover:bg-purple-600');
+            } else {
+                // Play music
+                backgroundMusic.play().then(() => {
+                    isMusicPlaying = true;
+                    
+                    audioToggleButton.querySelector('i').setAttribute('data-lucide', 'music');
+                    audioToggleButton.classList.remove('text-gray-400', 'bg-gray-800');
+                    audioToggleButton.classList.add('text-white', 'bg-purple-700', 'hover:bg-purple-600');
+                }).catch(e => {
+                    console.error("Music playback failed:", e);
+                    // Beri feedback jika gagal
+                    // Ini biasanya karena user belum berinteraksi sama sekali
+                    displayMessage("😆 Saatnya Pakai Headset Broo", false);
+                });
+            }
+            lucide.createIcons();
+        }
+
+
+        function displayMessage(text, isUser, isAudio = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+
+            const contentDiv = document.createElement('div');
+            // Menambahkan latar belakang semi-transparan pada pesan AI agar background gambar terlihat
+            contentDiv.className = `max-w-[80%] p-4 rounded-xl shadow-lg ${
+                isUser 
+                ? 'user-message text-white border border-purple-800' 
+                : 'ai-message text-gray-300'
+            }`;
+
+            if (!isUser) {
+                const sender = document.createElement('p');
+                sender.className = 'text-sm font-semibold text-purple-400 mb-1';
+                sender.textContent = 'AI Vanatic';
+                contentDiv.appendChild(sender);
+                
+                if (isAudio) {
+                    const audioIcon = document.createElement('span');
+                    audioIcon.className = 'text-xs text-green-400 italic flex items-center mb-2';
+                    audioIcon.innerHTML = `<i data-lucide="volume-2" class="w-4 h-4 mr-1"></i> (TTS Aktif)`;
+                    contentDiv.appendChild(audioIcon);
+                }
+            }
+
+            const textP = document.createElement('div');
+            textP.className = 'text-base break-words';
+            
+            // Sederhana markdown to HTML (bold/newline)
+            const htmlText = text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+                
+            textP.innerHTML = htmlText;
+            
+            contentDiv.appendChild(textP);
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+            return textP;
+        }
+
+        // --- FUNGSI API ---
+
+        async function getGeminiResponse(prompt) {
+            const systemInstruction = MODES[currentMode].prompt + " Jawab dengan bahasa Indonesia.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: {
+                    parts: [{ text: systemInstruction }]
+                },
+                tools: [{ "google_search": {} }],
+            };
+
+            const url = `${GEMINI_API_BASE}${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+            const result = await processAPIRequest(url, payload);
+
+            return result.candidates?.[0]?.content?.parts?.[0]?.text;
+        }
+
+        async function getTTSAudio(text) {
+            const voice = MODES[currentMode].tts ? "Fenrir" : "Puck"; // Fenrir untuk Game/Antusias, Puck untuk Umum
+            
+            const payload = {
+                contents: [{
+                    parts: [{ text: text }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: voice } 
+                        }
+                    }
+                },
+            };
+
+            const url = `${GEMINI_API_BASE}${TTS_MODEL}:generateContent?key=${API_KEY}`;
+            const result = await processAPIRequest(url, payload);
+            
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+                const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                
+                const pcmData = base64ToArrayBuffer(audioData);
+                const pcm16 = new Int16Array(pcmData);
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                return URL.createObjectURL(wavBlob);
+            }
+            return null;
+        }
+
+
+        // --- LOGIKA UTAMA APLIKASI ---
+        
+        function switchMode(newMode) {
+            if (MODES[newMode]) {
+                currentMode = newMode;
+                updateModeDisplay();
+                displayMessage(`⚙️ AI beralih ke **Mode ${MODES[newMode].name}**!`, false);
+                return true;
+            }
+            return false;
+        }
+
+        async function handleChatSubmission() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // Cek apakah ini perintah ganti mode: Ai Mode : Pacaran
+            const modeCommandMatch = text.toLowerCase().match(/^ai mode\s*:?\s*(\w+)/i);
+            
+            if (modeCommandMatch) {
+                const requestedModeName = modeCommandMatch[1].toLowerCase();
+                
+                // Mencari mode yang cocok berdasarkan nama mode atau key (santai, coding, dll)
+                const foundModeKey = Object.keys(MODES).find(key => {
+                    const modeNameLower = MODES[key].name.toLowerCase();
+                    // Menggunakan string.startsWith untuk pencocokan yang lebih fleksibel.
+                    return modeNameLower.startsWith(requestedModeName) || key.startsWith(requestedModeName);
+                });
+                
+                if (foundModeKey) {
+                    userInput.value = '';
+                    userInput.style.height = 'auto'; 
+                    updateSendButtonState();
+                    switchMode(foundModeKey);
+                    return;
+                }
+            }
+
+
+            // 1. Tampilkan pesan user
+            displayMessage(text, true);
+
+            // 2. Bersihkan input
+            userInput.value = '';
+            userInput.style.height = 'auto'; 
+            updateSendButtonState();
+
+            showLoading();
+
+            try {
+                // 3. Dapatkan respons teks dari AI
+                const aiResponseText = await getGeminiResponse(text);
+
+                if (!aiResponseText) {
+                    displayMessage("Maaf, AI gagal memberikan respons yang valid.", false);
+                    return;
+                }
+                
+                // 4. Proses Audio atau Teks
+                const shouldSpeak = isAudioEnabled || MODES[currentMode].tts;
+                
+                if (shouldSpeak) {
+                    const audioUrl = await getTTSAudio(aiResponseText);
+                    
+                    if (audioUrl) {
+                        displayMessage(aiResponseText, false, true);
+                        
+                        const audio = new Audio(audioUrl);
+                        audioStatus.textContent = "TTS sedang diputar...";
+                        audioStatus.classList.remove('hidden');
+                        
+                        audio.onended = () => audioStatus.classList.add('hidden');
+                        audio.onerror = (e) => {
+                            console.error("Audio Playback Error (TTS):", e);
+                            audioStatus.textContent = "Gagal memutar TTS.";
+                        };
+                        audio.play().catch(e => {
+                            console.error("Play Promise Rejected (TTS):", e);
+                            audioStatus.textContent = "Browser memblokir pemutaran TTS. Coba interaksi lain.";
+                        });
+                        
+                    } else {
+                        // Gagal Audio, Tampilkan Teks Saja
+                        displayMessage(aiResponseText, false, false);
+                    }
+                } else {
+                    // Tampilkan Teks Saja
+                    displayMessage(aiResponseText, false, false);
+                }
+
+            } catch (error) {
+                console.error("Chat error:", error);
+                displayMessage(`Maaf, terjadi kesalahan: ${error.message || "Gagal memproses permintaan AI."}`, false);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- HANDLER EVENT ---
+        
+        // 1. INITIAL LOAD & SCREEN MANAGEMENT
+        function manageScreens() {
+            // Cek apakah data login sudah ada di localStorage
+            const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+            const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+            
+            // Pastikan video mulai diputar
+            document.getElementById('loading-video-1').play().catch(() => {});
+
+            // Transisi Loading 1 (10 detik) -> Login
+            setTimeout(() => {
+                loadingScreen1.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen1.classList.add('hidden');
+                    if (storedKey && storedUsername) {
+                        // Jika sudah login, langsung ke Loading 2
+                        handleLogin(storedUsername, storedKey);
+                    } else {
+                        // Jika belum login, tampilkan Login Screen
+                        loginScreen.classList.remove('hidden');
+                        loginScreen.style.display = 'flex';
+                    }
+                }, 1000); 
+            }, 10000);
+        }
+
+        // Transisi Loading 2 (16 detik) -> Chat
+        function showLoading2AndChat(username, apiKey) {
+            loadingScreen2.classList.remove('hidden');
+            // Coba putar video
+            document.getElementById('loading-video-2').play().catch(() => {});
+            
+            setTimeout(() => {
+                loadingScreen2.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen2.classList.add('hidden');
+                    chatScreen.classList.remove('hidden');
+                    currentUserDisplay.textContent = username;
+                    updateModeDisplay();
+                    // Audio Music TIDAK diputar otomatis. Tunggu user klik tombol.
+                    
+                }, 1000); // Transisi CSS opacity
+            }, 16000);
+        }
+        
+        function handleLogin(username, key) {
+            API_KEY = key;
+            currentUsername = username;
+            localStorage.setItem(API_KEY_STORAGE_KEY, key);
+            localStorage.setItem(USERNAME_STORAGE_KEY, username);
+            
+            loginScreen.classList.add('hidden');
+            loginScreen.style.display = 'none';
+            
+            // Pindah ke Loading Screen 2
+            showLoading2AndChat(username, key);
+        }
+
+        // 2. LOGIN
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const key = apiKeyInput.value.trim();
+            const user = usernameInput.value.trim();
+            
+            if (!key || !user) {
+                loginError.textContent = "Kunci API dan Username wajib diisi!";
+                loginError.classList.remove('hidden');
+                return;
+            }
+            loginError.classList.add('hidden');
+            handleLogin(user, key);
+        });
+        
+        // 3. CHAT INPUT
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = Math.min(userInput.scrollHeight, 160) + 'px'; // Max height 160px
+            updateSendButtonState();
+        });
+        
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            handleChatSubmission();
+        });
+        
+        // 4. AUDIO TOGGLE (Sekarang untuk Music Play/Pause)
+        audioToggleButton.addEventListener('click', toggleMusic);
+
+        // Jalankan fungsi utama saat DOM siap
+        document.addEventListener('DOMContentLoaded', manageScreens);
+    </script>
+</body>
+</html>
